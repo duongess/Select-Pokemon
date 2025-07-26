@@ -1,114 +1,166 @@
 "use client";
-import { loginRequest } from "@/features/auth/model/slice";
+import React from "react";
+import { FixedSizeGrid as Grid } from "react-window";
+
+import PokemonForm0 from "@/features/poke/components/pokemon-form-0";
+import PokemonForm1 from "@/features/poke/components/pokemon-form-1";
+import { selectPokemon, pokemons } from "@/features/poke/model/selectors";
+import {
+  fetchPokemonsRequest,
+  fetchPokemonDetailRequest,
+  clearSelectedPokemon,
+} from "@/features/poke/model/slice";
 import { useAppDispatch, useAppSelector } from "@/shared/hooks/use-store";
-import { ModeToggle } from "@/shared/widgets/ui/mode-toggle";
-import Image from "next/image";
 
 export default function Home() {
   const dispatch = useAppDispatch();
-  const { isLoading, error, user } = useAppSelector((state) => state.auth);
+  const pokemonAll = useAppSelector(pokemons);
+  const selectedDetail = useAppSelector(selectPokemon);
 
-  const handleLogin = () => {
-    console.log("Logging in...");
-    dispatch(loginRequest({ email: "user@example.com", password: "password" }));
+  const [typedText, setTypedText] = React.useState("");
+  const [headerHeight, setHeaderHeight] = React.useState("750px");
+  const [activeTab, setActiveTab] = React.useState<number | null>(null);
+  const [search, setSearch] = React.useState("");
+  const [windowWidth, setWindowWidth] = React.useState<number>(1200);
+
+  const itemWidth = 220;
+  const itemHeight = 220;
+  const gap = 16;
+
+  React.useEffect(() => {
+    dispatch(fetchPokemonsRequest({ offset: 0, limit: 1000 }));
+  }, [dispatch]);
+
+  React.useEffect(() => {
+    const fullText = "Pokemon Search";
+    let current = 0;
+    const interval = setInterval(() => {
+      setTypedText(fullText.slice(0, current + 1));
+      current++;
+      if (current >= fullText.length) clearInterval(interval);
+    }, 80);
+    return () => clearInterval(interval);
+  }, []);
+
+  React.useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener("resize", handleResize);
+    handleResize();
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  React.useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.scrollY;
+      const newHeight = Math.max(150, 750 - scrollTop);
+      setHeaderHeight(`${newHeight}px`);
+    };
+    if (!selectedDetail) {
+      window.addEventListener("scroll", handleScroll);
+      return () => window.removeEventListener("scroll", handleScroll);
+    }
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "auto";
+    };
+  }, [selectedDetail]);
+
+  const filteredPokemons = pokemonAll.filter((p) =>
+    p.name.toLowerCase().startsWith(search.toLowerCase())
+  );
+
+  const columnCount = Math.max(1, Math.floor(windowWidth / (itemWidth + gap)));
+  const rowCount = Math.ceil(filteredPokemons.length / columnCount);
+  const gridWidth = columnCount * (itemWidth + gap);
+
+  const chosenPokemon = (rowIdx: number, colIdx: number) => {
+    const index = rowIdx * columnCount + colIdx;
+    setActiveTab(index);
+    const pokemon = filteredPokemons[index];
+    if (pokemon) {
+      dispatch(fetchPokemonDetailRequest(pokemon.name));
+    }
   };
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <div className="absolute top-4 right-4">
-        <ModeToggle />
-      </div>
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <button
-            onClick={handleLogin}
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </button>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const handleCloseDetail = () => {
+    setActiveTab(null);
+    dispatch(clearSelectedPokemon());
+  };
+
+  const Cell = ({ columnIndex, rowIndex, style }: any) => {
+    const index = rowIndex * columnCount + columnIndex;
+    const pokemon = filteredPokemons[index];
+    if (!pokemon) return null;
+
+    return (
+      <div
+        style={{
+          ...style,
+          padding: `${gap / 1}px`,
+          boxSizing: "border-box",
+        }}
+      >
+        <button
+          onClick={() => chosenPokemon(rowIndex, columnIndex)}
+          className={`w-full h-full rounded-lg font-semibold border transition-colors ${
+            activeTab === index
+              ? "bg-blue-500 text-white"
+              : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200"
+          }`}
+          style={{
+            width: "100%",
+            height: "100%",
+          }}
+        >
+          <PokemonForm0 pokemon={pokemon} />
+        </button>
+      </div>
+    );
+  };
+
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-white dark:bg-black">
+      <header
+        className="w-full flex flex-col items-center justify-center sticky top-0 z-20 bg-white dark:bg-black shadow-md transition-all duration-300 ease-in-out"
+        style={{ height: headerHeight }}
+      >
+        <h1 className="text-4xl font-bold mb-6 text-center pt-6 pb-4">
+          {typedText}
+          <span className="animate-pulse">|</span>
+        </h1>
+        <input
+          type="text"
+          placeholder="Tìm kiếm Pokémon..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full max-w-md px-4 py-2 border rounded-lg shadow focus:outline-none focus:ring-2 focus:ring-blue-500 mb-8"
+        />
+      </header>
+
+      <div className="w-full flex flex-col items-center">
+        <div style={{ width: "100%", overflowX: "auto" }}>
+          <div style={{ width: gridWidth, margin: "100px auto" }}>
+            <Grid
+              columnCount={columnCount}
+              columnWidth={itemWidth + gap}
+              height={600}
+              rowCount={rowCount}
+              rowHeight={itemHeight + gap}
+              width={gridWidth}
+            >
+              {Cell}
+            </Grid>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+
+        {selectedDetail && (
+          <PokemonForm1
+            pokemon={selectedDetail}
+            onClose={handleCloseDetail}
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        )}
+      </div>
     </div>
   );
 }
