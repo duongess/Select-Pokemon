@@ -1,13 +1,13 @@
 import React from "react";
 import Image from "next/image";
-import { PokemonDetail } from "@/features/poke/model/types";
+import { PokemonDetail } from "@/entities/user/model/type";
 
 interface PokemonForm1Props {
   pokemon: PokemonDetail;
   onClose: () => void;
 }
 
-export default function PokemonForm1({ pokemon, onClose }: PokemonForm1Props) {
+export default function PokemonCard({ pokemon, onClose }: PokemonForm1Props) {
   const {
     name,
     height,

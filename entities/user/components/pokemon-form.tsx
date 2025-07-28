@@ -1,13 +1,13 @@
 import React from "react";
 import Image from "next/image";
-import { PokemonListItem } from "@/features/poke/model/types";
+import { PokemonListItem } from "@/entities/user/model/type";
 
 interface PokemonForm0Props {
   pokemon: PokemonListItem;
 }
 
 
-function PokemonForm0({ pokemon } : PokemonForm0Props) {
+function PokemonForm({ pokemon } : PokemonForm0Props) {
   return (
     <div className="flex flex-col items-center bg-gray-50 dark:bg-gray-900 rounded-lg shadow p-4 w-48">
       <div className="w-32 h-32 relative mb-2">
@@ -23,4 +23,4 @@ function PokemonForm0({ pokemon } : PokemonForm0Props) {
       </div>
     </div>
   );
-} export default PokemonForm0;
+} export default PokemonForm;

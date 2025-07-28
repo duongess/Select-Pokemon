@@ -1,7 +1,7 @@
 // shared/store/root-reducer.ts
 import { combineReducers } from "@reduxjs/toolkit";
 import authReducer from "../../features/auth/model/slice";
-import PokeReducer from "../../features/poke/model/slice"; // Import Pokémon slice
+import PokeReducer from "../../features/pokemon/model/slice"; // Import Pokémon slice
 // Import other feature reducers
 
 export const rootReducer = combineReducers({
