@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { StoreProvider } from "@/shared/providers/store-provider";
 import { ThemeProvider } from "@/shared/providers/theme-provider";
+import { Web3Wrapper } from '@/shared/config/auth';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PokeAPI",
+  title: "Chainemon",
   description: "A simple PokeAPI client",
 };
 
@@ -29,16 +30,18 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <StoreProvider>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            {children}
-          </ThemeProvider>
-        </StoreProvider>
+        <Web3Wrapper>
+            <StoreProvider>
+              <ThemeProvider
+                attribute="class"
+                defaultTheme="system"
+                enableSystem
+                disableTransitionOnChange
+              >
+                {children}
+              </ThemeProvider>
+            </StoreProvider>
+        </Web3Wrapper>
       </body>
     </html>
   );

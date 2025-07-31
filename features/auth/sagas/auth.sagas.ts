@@ -1,76 +1,40 @@
 // features/auth/sagas/auth.saga.ts
-import { call, put, takeEvery, takeLatest } from "redux-saga/effects";
+import { call, put, takeEvery } from "redux-saga/effects";
 import {
-  loginRequest,
-  loginSuccess,
-  loginFailure,
-  logout,
-  registerRequest,
-  registerSuccess,
-  registerFailure,
-  checkAuthStatus,
-  authStatusSuccess,
-  authStatusFailure,
+  connectWalletRequest,
+  connectWalletSuccess,
+  connectWalletFailure,
+  disconnectWallet,
 } from "../model/slice";
-import { mockAuthService } from "../../../shared/api/mock/auth-service";
 import { PayloadAction } from "@reduxjs/toolkit";
 import { User } from "../model/types";
-import { SagaGenerator } from "../../../shared/lib/redux/saga-types";
+import { Connector } from "wagmi";
+import { mockAuthService } from "@/shared/api/mock/auth-service";
 
-// Handle login
-function* handleLogin(
-  action: PayloadAction<{ email: string; password: string }>
-): SagaGenerator<User> {
+// 📦 Login wallet
+function* handleConnectWallet(action: PayloadAction<{ address: string; connector: Connector }>) {
   try {
-    const user = yield call(mockAuthService.login, action.payload);
+    const { address, connector } = action.payload;
+    const user: User = yield call(mockAuthService.login, { address });
 
-    yield put(loginSuccess(user));
+    yield put(connectWalletSuccess({ user, connector }));
   } catch (error: any) {
-    // Dispatch failure action with error message
-    yield put(loginFailure(error.message || "Login failed"));
+    yield put(connectWalletFailure(error.message || "Failed to connect wallet"));
   }
 }
 
-// Handle logout
-function* handleLogout(): SagaGenerator {
+// ❌ Disconnect
+function* handleDisconnectWallet() {
   try {
     yield call(mockAuthService.logout);
+    // State sẽ được reset trong reducer, không cần dispatch gì nữa
   } catch (error) {
-    console.error("Logout error:", error);
+    console.error("Failed to disconnect wallet", error);
   }
 }
 
-// Handle registration
-function* handleRegister(
-  action: PayloadAction<{ email: string; password: string; name: string }>
-): SagaGenerator<User> {
-  try {
-    const user = yield call(mockAuthService.register, action.payload);
-    yield put(registerSuccess(user));
-  } catch (error: any) {
-    yield put(registerFailure(error.message || "Registration failed"));
-  }
-}
-
-// Handle auth status check
-function* handleCheckAuthStatus(): SagaGenerator<User | null> {
-  try {
-    const user = yield call(mockAuthService.getCurrentUser);
-
-    if (user) {
-      yield put(authStatusSuccess(user));
-    } else {
-      yield put(authStatusFailure());
-    }
-  } catch (error) {
-    yield put(authStatusFailure());
-  }
-}
-
-// Watcher Saga
-export function* authSagas(): SagaGenerator {
-  yield takeEvery(loginRequest.type, handleLogin);
-  yield takeLatest(logout.type, handleLogout);
-  yield takeLatest(registerRequest.type, handleRegister);
-  yield takeLatest(checkAuthStatus.type, handleCheckAuthStatus);
+// 🧠 Export watcher
+export function* authSagas() {
+  yield takeEvery(connectWalletRequest.type, handleConnectWallet);
+  yield takeEvery(disconnectWallet.type, handleDisconnectWallet);
 }
